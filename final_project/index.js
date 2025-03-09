@@ -10,11 +10,27 @@ app.use(express.json());
 
 app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUninitialized: true}))
 
-app.use("/customer/auth/*", function auth(req,res,next){
-//Write the authenication mechanism here
+app.use("/customer/auth/*", function auth(req, res, next) {
+    const authHeader = req.headers["authorization"];
+
+    if (!authHeader) {
+        return res.status(403).json({ message: "User not logged in - No Authorization Header" });
+    }
+
+    const token = authHeader.split(" ")[1]; // Extract token from "Bearer <token>"
+
+    jwt.verify(token, "secret_key", (err, user) => {
+        if (err) {
+          console.log(err); // Log the error for debugging
+          return res.status(403).json({ message: "Invalid token" });
+        }
+        console.log(user); // Log the decoded user object
+        req.username = user.username;
+        next();
+      });
 });
  
-const PORT =5000;
+const PORT =5001;
 
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
